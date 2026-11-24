@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Physics Quest — Interactive 3D Lab</title>
+  <link rel="stylesheet" href="https://jsdelivr.net">
+  <script defer src="https://jsdelivr.net"></script>
+  <script defer src="https://jsdelivr.net"></script>
+  <style>
+    :root { --bg: #070b14; --card: #111827; --accent: #38bdf8; --gold: #fbbf24; --green: #10b981; --pink: #f472b6; --text: #f3f4f6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+    header {
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+      padding: 14px 24px; background: #0d1323; border-bottom: 1px solid #1e293b;
+    }
+    .brand { font-size: 19px; font-weight: 800; color: var(--accent); letter-spacing: 0.4px; }
+    .stats { display: flex; gap: 12px; align-items: center; font-size: 14px; }
+    .badge { background: #1e293b; padding: 6px 14px; border-radius: 999px; font-weight: 700; border: 1px solid #334155; }
+    .layout {
+      max-width: 1160px; margin: 20px auto; padding: 0 16px;
+      display: grid; grid-template-columns: 1.35fr 1fr; gap: 20px;
+    }
+    @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+    .panel { background: var(--card); border: 1px solid #1f2937; border-radius: 16px; padding: 18px; }
+    #scene-wrap { position: relative; height: 420px; border-radius: 12px; overflow: hidden; background: #02050c; cursor: grab; }
+    #scene-wrap:active { cursor: grabbing; }
+    .hud-msg {
+      position: absolute; top: 12px; left: 12px; right: 12px; pointer-events: none;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px);
+      padding: 10px 14px; border-radius: 10px; font-size: 14px; border: 1px solid #334155;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    }
+    .hint-tag {
+      position: absolute; bottom: 10px; right: 12px; pointer-events: none;
+      font-size: 12px; color: #94a3b8; background: rgba(15,23,42,0.7); padding: 4px 10px; border-radius: 6px;
+    }
+    .level-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .tab {
+      background: #1f2937; color: #cbd5e1; border: 1px solid #374151;
+      padding: 8px 13px; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.15s;
+    }
+    .tab:hover { border-color: var(--accent); }
+    .tab.active { background: var(--accent); color: #090d16; border-color: var(--accent); }
+    .controls { display: grid; gap: 12px; margin: 14px 0; background: #0d1323; padding: 14px; border-radius: 12px; border: 1px solid #1e293b; }
+    .slider-row { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+    .slider-row label { display: flex; justify-content: space-between; color: #cbd5e1; }
+    input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    .actions { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-launch {
+      flex: 1; background: linear-gradient(135deg, #10b981, #34d399); color: #052e16; border: none; padding: 12px;
+      border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer; transition: transform 0.1s;
+    }
+    .btn-launch:active { transform: scale(0.98); }
+    .btn-reset {
+      background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 12px 18px;
+      border-radius: 10px; font-weight: 600; cursor: pointer;
+    }
+    .formula-box {
+      background: #0d1323; border-left: 4px solid var(--accent);
+      padding: 13px 15px; border-radius: 10px; margin-top: 12px; font-size: 14px; line-height: 1.55;
+    }
+    .formula-math { font-size: 17px; color: #7dd3fc; margin: 6px 0; }
+    .live-calc {
+      background: #172033; padding: 8px 12px; border-radius: 8px; margin-top: 8px;
+      font-family: ui-monospace, monospace; font-size: 13px; color: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">⚛️ 3D Physics Quest</div>
+  <div class="stats">
+    <span class="badge">🔥 Streak: <span id="streak-val">0</span></span>
+    <span class="badge">⭐ XP: <span id="xp-val">0</span></span>
+    <span class="badge">🎯 Solved: <span id="solved-val">0</span>/4</span>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Left: Interactive 3D Playground -->
+  <div class="panel">
+    <div class="level-tabs">
+      <button class="tab active" onclick="selectLevel(0)">1. Cannon Target</button>
+      <button class="tab" onclick="selectLevel(1)">2. Ramp Friction</button>
+      <button class="tab" onclick="selectLevel(2)">3. Orbit Slingshot</button>
+      <button class="tab" onclick="selectLevel(3)">4. Pendulum Clock</button>
+    </div>
+
+    <div id="scene-wrap">
+      <div class="hud-msg">
+        <span id="mission-text">🎯 Mission: Hit the glowing target ring!</span>
+        <span id="live-readout" style="color:#38bdf8; font-weight:700;">Ready</span>
+      </div>
+      <div class="hint-tag">🖱️ Drag to rotate 3D camera</div>
+    </div>
+
+    <div class="controls" id="sliders-box"></div>
+
+    <div class="actions">
+      <button class="btn-launch" onclick="runSimulation()">🚀 Launch / Test Physics</button>
+      <button class="btn-reset" onclick="resetLevel()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- Right: Visual Formula & Intuition Guide -->
+  <div class="panel">
+    <h2 id="title-text" style="margin-top:0; color:#38bdf8;">Level 1: Projectile Motion</h2>
+    <p id="story-text" style="color:#cbd5e1; line-height:1.55; font-size:14.5px;"></p>
+
+    <div class="formula-box">
+      <strong>📐 Core Formula Used:</strong>
+      <div class="formula-math" id="formula-text"></div>
+      <div class="live-calc" id="live-calc-text">Live Calculation: --</div>
+      <p style="margin:10px 0 0;"><strong>💡 Why We Need This Formula:</strong></p>
+      <p id="need-text" style="margin:4px 0 0; color:#cbd5e1;"></p>
+    </div>
+
+    <div class="formula-box" style="border-left-color:#10b981;">
+      <strong>🔍 Variable Decoder:</strong>
+      <div id="vars-text" style="margin-top:6px; color:#cbd5e1;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cloudflare.com"></script>
+<script>
+  // --- LEVEL DEFINITIONS ---
+  const levels = [
+    {
+      title: "Level 1: Projectile Target Challenge",
+      mission: "🎯 Hit the gold ring at distance R = 12.0 m!",
+      story: "Gravity pulls downward continuously, while horizontal speed stays constant. Adjust launch speed and angle so your parabolic arc lands right inside the glowing ring.",
+      formula: "$$R = \\frac{v_0^2 \\sin(2\\theta)}{g}$$",
+      need: "Instead of tracking position millisecond-by-millisecond, this equation combines flight time and horizontal speed to predict exact landing range in one step.",
+      vars: "• <b>v₀</b>: Launch speed (m/s)<br>• <b>θ</b>: Launch angle (degrees)<br>• <b>g</b>: Gravity (9.8 m/s²)",
+      sliders: [
+        { id: "v0", label: "Launch Speed (v₀)", min: 6, max: 18, step: 0.5, val: 10, unit: " m/s" },
+        { id: "angle", label: "Launch Angle (θ)", min: 15, max: 75, step: 1, val: 35, unit: "°" }
+      ]
+    },
+    {
+      title: "Level 2: Inclined Plane & Friction",
+      mission: "🎯 Reach the bottom gate at speed ~ 6.0 m/s!",
+      story: "A block slides down an angled ramp. Gravity pulls it down the slope while surface friction resists motion. Tune the friction coefficient μ to control its exit speed.",
+      formula: "$$a = g(\\sin\\theta - \\mu\\cos\\theta)$$",
+      need: "Tilting our coordinate axes along the ramp splits gravity into a sliding force (mg sinθ) and a normal pressing force (mg cosθ), showing how much friction slows the slide.",
+      vars: "• <b>μ</b>: Coefficient of friction<br>• <b>θ</b>: Ramp angle (degrees)<br>• <b>a</b>: Net acceleration down ramp (m/s²)",
+      sliders: [
+        { id: "mu", label: "Surface Friction (μ)", min: 0.0, max: 0.6, step: 0.02, val: 0.2, unit: "" },
+        { id: "rampAngle", label: "Ramp Angle (θ)", min: 15, max: 45, step: 1, val: 30, unit: "°" }
+      ]
+    },
+    {
+      title: "Level 3: Circular Orbit Slingshot",
+      mission: "🎯 Keep the satellite in a stable circular orbit!",
+      story: "A satellite stays in orbit when its sideways speed perfectly balances gravity's inward pull. Too slow and it spirals into the planet; too fast and it escapes into space.",
+      formula: "$$v = \\sqrt{\\frac{GM}{r}}$$",
+      need: "Setting gravitational pull (GMm/r²) equal to centripetal force (mv²/r) gives the exact sideways speed needed to stay at radius r.",
+      vars: "• <b>v</b>: Orbital speed (km/s)<br>• <b>r</b>: Orbit radius<br>• <b>GM</b>: Planet gravity constant (250)",
+      sliders: [
+        { id: "orbitV", label: "Thruster Speed (v)", min: 4, max: 12, step: 0.2, val: 7.5, unit: " km/s" },
+        { id: "radius", label: "Orbit Radius (r)", min: 3, max: 6, step: 0.5, val: 4.5, unit: " units" }
+      ]
+    },
+    {
+      title: "Level 4: Pendulum Period Tuning",
+      mission: "🎯 Tune string length L for a period T = 2.0 s!",
+      story: "Grandfather clocks keep time using a swinging pendulum. Surprisingly, the mass of the bob doesn't change the swing time—only string length L and gravity g matter!",
+      formula: "$$T = 2\\pi\\sqrt{\\frac{L}{g}}$$",
+      need: "For small swings, restoring gravity acts like a spring, making swing duration depend strictly on the square root of string length.",
+      vars: "• <b>T</b>: Time for 1 full back-and-forth swing (s)<br>• <b>L</b>: String length (m)<br>• <b>g</b>: Gravity (9.8 m/s²)",
+      sliders: [
+        { id: "pendL", label: "String Length (L)", min: 0.3, max: 2.5, step: 0.05, val: 1.5, unit: " m" },
